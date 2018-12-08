@@ -1,0 +1,21 @@
+---
+title: "different city tree cover"
+author: "Bingquan Wu"
+date: "December 7, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+
+
+```{r}
+mytree <- read.csv(file="d:/columbia/EDAV/project/different city tree cover.csv",
+                   header=TRUE, sep=",")
+
+library(ggplot2)
+ggplot(mytree,aes(x= reorder(Cities,-Tree.Cover),Tree.Cover))+geom_bar(aes(y=Tree.Cover),stat='identity')+labs(title="Different city tree cover rate in US",x="city", y = "Tree cover rate (%)")
+```
