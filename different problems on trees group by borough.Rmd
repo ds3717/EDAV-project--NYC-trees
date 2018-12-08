@@ -1,0 +1,47 @@
+---
+title: "Untitled"
+author: "Bingquan Wu"
+date: "December 7, 2018"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+
+```{r}
+mydata <- read.csv(file="d:/columbia/EDAV/project/2015_Street_Tree_Census_-_Tree_Data.csv",
+                   header=TRUE, sep=",")
+
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(grid)
+library(lattice)
+
+ggplot(mydata,aes(x=borough,fill=factor(root_stone)))+geom_bar((aes(y = (..count..))),position=position_dodge())+labs(title="Borough and root",x="borough", y = "Number of trees",fill="root_stone")+scale_fill_manual(values=c("Yes" = "orange", "No" = "blue"),breaks=c("Yes","No"),labels=c("Yes","No"))
+
+boroughrootstone<-mydata %>% group_by(borough) %>% count(root_stone) %>% mutate(proportion = n / sum(n))
+boroughrootstone2<- subset(boroughrootstone,boroughrootstone$root_stone == "Yes" ) 
+boroughrootgrate<-mydata %>% group_by(borough) %>% count(root_grate) %>% mutate(proportion = n / sum(n))
+boroughrootgrate2<- subset(boroughrootgrate,boroughrootgrate$root_grate == "Yes" ) 
+boroughtrunkwire<-mydata %>% group_by(borough) %>% count(trunk_wire) %>% mutate(proportion = n / sum(n))
+boroughtrunkwire2<- subset(boroughtrunkwire,boroughtrunkwire$trunk_wire == "Yes" ) 
+boroughtrunklight<-mydata %>% group_by(borough) %>% count(trnk_light) %>% mutate(proportion = n / sum(n))
+boroughtrunklight2<- subset(boroughtrunklight,boroughtrunklight$trnk_light == "Yes" ) 
+boroughbrchlight<-mydata %>% group_by(borough) %>% count(brch_light) %>% mutate(proportion = n / sum(n))
+boroughbrchlight2<- subset(boroughbrchlight,boroughbrchlight$brch_light == "Yes" ) 
+boroughbrchshoe<-mydata %>% group_by(borough) %>% count(brch_shoe) %>% mutate(proportion = n / sum(n))
+boroughbrchshoe2<- subset(boroughbrchshoe,boroughbrchshoe$brch_shoe == "Yes" ) 
+
+s1 <- ggplot(boroughrootstone2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="lightblue")+labs(title="root problem caused by stone",x="borough", y = "Proportion")
+s2 <- ggplot(boroughrootgrate2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="lightblue")+labs(title="root problem caused by grate",x="borough", y = "Proportion")
+s3 <- ggplot(boroughtrunkwire2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="pink")+labs(title="trunk problem caused by wire",x="borough", y = "Proportion")
+s4 <- ggplot(boroughtrunklight2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="pink")+labs(title="trunk problem caused by light",x="borough", y = "Proportion")
+s5 <- ggplot(boroughbrchlight2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="lightgreen")+labs(title="branch problem caused by light",x="borough", y = "Proportion")
+s6 <- ggplot(boroughbrchshoe2,aes(x=borough))+geom_bar(aes(y=proportion),stat="identity",fill="lightgreen")+labs(title="branch problem caused by shoe",x="borough", y = "Proportion")
+grid.arrange(s1, s2, s3, s4, s5, s6, ncol=2)
+```
