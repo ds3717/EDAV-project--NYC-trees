@@ -1,0 +1,24 @@
+---
+title: "tree_dbh density and ridge"
+author: "Bingquan Wu"
+date: "December 9, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+```{r}
+mydata <- read.csv(file="d:/columbia/EDAV/project/2015_Street_Tree_Census_-_Tree_Data.csv",
+                   header=TRUE, sep=",")
+library(ggplot2)
+ggplot(mydata, aes(x=tree_dbh)) + geom_density(fill="lightblue")+labs(title="tree_dbh density curve",x="tree_dbh", y = "density")
+ggplot(mydata, aes(x=tree_dbh)) + geom_density(fill="lightblue") + xlim(0, 50)+labs(title="tree_dbh density curve",x="tree_dbh", y = "density")
+```
+
+```{r}
+library(ggridges)
+ggplot(mydata, aes(x = tree_dbh, y = borough,fill=borough)) + geom_density_ridges()+labs(title="tree_dbh density ridgeplot",x="tree_dbh", y = "borough")+xlim(0, 50)
+```
