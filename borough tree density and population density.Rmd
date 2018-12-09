@@ -1,0 +1,31 @@
+---
+title: "borough tree density and population density"
+author: "Bingquan Wu"
+date: "December 9, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+```{r}
+borough<-c("Manhattan","Bronx","Staten Island","Brooklyn","Queens")
+borough<-factor(borough)
+tree<-c(65423,85203,105318,177293,250551)
+population<-c(1664727,1471160,479458,2648771,2358582)
+area<-c(22.83,42.1,58.37,70.82,108.53)
+populationdensity<-population/area
+treedensity<-tree/area
+mydata<-data.frame(borough, treedensity, populationdensity,tree,population)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(lattice)
+s1<-ggplot(mydata,aes(x=borough,fill=borough))+geom_bar(aes(y=tree),stat="identity")+labs(title="Trees each borough",x="borough", y = "Number of trees")
+s2<-ggplot(mydata,aes(x=borough,fill=borough))+geom_bar(aes(y=area),stat="identity")+labs(title="Land area each borough",x="borough", y = "land area (miles)")
+s3<-ggplot(mydata,aes(x=borough,fill=borough))+geom_bar(aes(y=population),stat="identity")+labs(title="Population each borough",x="borough", y = "Population")
+s4<-ggplot(mydata,aes(x=borough,fill=borough))+geom_bar(aes(y=tree/population),stat="identity")+labs(title="tree per person",x="borough", y = "tree per person")
+grid.arrange(s1, s2, s3, s4, ncol=2)
+```
