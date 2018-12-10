@@ -1,0 +1,60 @@
+---
+title: "tree_dbh density and ridge"
+author: "Bingquan Wu"
+date: "December 9, 2018"
+output: pdf_document
+font: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+```{r}
+mydata <- read.csv(file="d:/columbia/EDAV/project/2015_Street_Tree_Census_-_Tree_Data.csv",
+                   header=TRUE, sep=",")
+library(ggplot2)
+ggplot(mydata, aes(x=tree_dbh)) + geom_density(fill="lightblue")+
+  labs(title="diameter density curve",
+x="tree breast height diameter (inch)", y = "density")+
+  theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+```
+
+From the density curve we can see the distribution of the tree's diameter, and that most tree have a diameter from 0 to 30. And lots of them are in the range of 10-20.\
+While from the scale of x-axis, we can now that there is few tree that has diameter of more than 400. And they determined the x-axis value.\
+So we have a common question to ask, how much trees can be considered as outlier, from the histogram, we can know that tree has a diameter of more 50 is rare and can be considered to be outlier.
+
+```{r}
+ggplot(mydata, aes(y=tree_dbh)) + geom_boxplot()+labs(title="diameter barplot", 
+y = "tree breast height diameter (inch)")+theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+```
+
+By plotting a boxplot. We can clearly see the statistic of the distribution, and find out the outlier easily.we can see no trees with diameter negative, which is for sure, but we need to check since the histogram have tree in interval of -5 to 5.\
+We can see that median is around 10, while 75% of data are from 0-20. And data more than 35 can be considered to be outliers.\
+We can also see each outliers, and some special oueliers, like one of 450, one of 430 and so on, which is very big compared to other tree.
+
+```{r}
+ggplot(mydata, aes(x=tree_dbh)) + geom_density(fill="lightblue") + xlim(0, 50)+
+  labs(title="diameter density curve zoomed",
+x="tree breast height diameter (inch)", y = "density")+ 
+  theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+```
+
+Now, we get aside the outliers, and plot the density curve again. This time we will get a somehow zoomed view of the curve. We can clearly see the serval peaks.\
+The highest peak is around 4cm, that with a density of more than 0.08. And we can see the diameter is distributed normally around the peak of 4cm, even though the plot does not look like a bell, since the lower bound of the diameter is 0 and do not have a upper bound.
+
+```{r}
+library(ggridges)
+ggplot(mydata, aes(x = tree_dbh, y = borough,fill=borough)) + geom_density_ridges()+
+  labs(title="diameter density ridgeplot",x="tree breast height diameter (inch)", y = "borough")+
+  xlim(0, 50)+theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+```
+
+Using a ridgeplot, we can compare the density distribution by borough very easily. Ridgeplot give us a direct understanding of different distribution, and easy to compare.\
+We can get many information, for example, Queens has more trees with diameter from 25-50 than Manhattan, which have very few tree with diameter in that range. \
+Also, we can found out a single-peak pattern in every borough, and a similar normal distributin of the pattern, which is useful in our further study if calculation will be involved.\
