@@ -49,7 +49,7 @@ The highest peak is around 4cm, that with a density of more than 0.08. And we ca
 
 ```{r}
 library(ggridges)
-ggplot(mydata, aes(x = tree_dbh, y = borough,fill=borough)) + geom_density_ridges()+
+ggplot(mydata, aes(x = tree_dbh, y = borough)) + geom_density_ridges()+
   labs(title="diameter density ridgeplot",x="tree breast height diameter (inch)", y = "borough")+
   xlim(0, 50)+theme(plot.title = element_text(size=22))+
   theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
