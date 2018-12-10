@@ -1,0 +1,40 @@
+---
+title: "borough tree density and population density"
+author: "Bingquan Wu"
+date: "December 9, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+```{r}
+borough<-c("Manhattan","Bronx","Staten Island","Brooklyn","Queens")
+borough<-factor(borough)
+tree<-c(65423,85203,105318,177293,250551)
+population<-c(1664727,1471160,479458,2648771,2358582)
+area<-c(22.83,42.1,58.37,70.82,108.53)
+populationdensity<-population/area
+treedensity<-tree/area
+mydata2<-data.frame(borough, treedensity, populationdensity,tree,population)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(lattice)
+th<-theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+ggplot(mydata2,aes(x=borough))+geom_bar(aes(y=tree),stat="identity")+
+  labs(title="Trees each borough",x="borough", y = "Number of trees")+th
+```
+
+From the graph, we can see that Queens has the highest number of trees and Manhattan has the lowest number of tree. But we also need to consider the population in each borough to make the comparison more meaningful.\
+
+```{r}
+ggplot(mydata2,aes(x=borough))+geom_bar(aes(y=tree/population),stat="identity")+
+  labs(title="Trees per person each borough",x="borough", y = "Trees per person")+th
+```
+
+So, here is the plot of trees per person in each borough. Manhattan is still the lowesr, while Staten Island  has the highest tree per person, much higher than other borough\
+This is mainly because, Staten Island has a low population density relatively, while Manhattan has a high population density. And also, Manhattan has much more buildings than other borough, and less place for planting trees.
