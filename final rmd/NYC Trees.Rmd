@@ -1,0 +1,356 @@
+---
+title: "NYC Trees Analysis"
+author: "Bingquan Wu,
+         Dazun Sun,
+         Hangyu Zhou,
+         Xiaoyu Chen"
+date: "12/9/2018"
+header-includes:
+  - \usepackage{hyperref}
+  - \usepackage[dvipsnames]{xcolor}
+  - \hypersetup{colorlinks=true, urlcolor=ForestGreen, linkcolor=ForestGreen}
+output: pdf_document
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(ggridges)
+library(gridExtra)
+library(grid)
+library(lattice)
+
+cbPalette <- c("#D55E00", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#999999", "#CC79A7")
+mydata <- read_csv('2015NYCTrees.csv')
+mydata_1995 <- read_csv("1995NYCTrees.csv")
+mydata_2005 <- read_csv("2005NYCTrees.csv")
+mytree <- read.csv('different city tree cover.csv')
+th <- theme(plot.title = element_text(size=18)) + 
+      theme(axis.text=element_text(size=12),axis.title=element_text(size=14))
+```
+
+\newpage
+
+
+
+\tableofcontents
+\newpage
+\section{Introduction}
+New York City, as one of the busiest city in the world, has surprisingly large amount of green space. This draws our attention to analyze the trees in NYC. Before looking at any data, the problems we are interested in include
+\begin{itemize}
+    \item how many trees are there in NYC and how are they distributed?
+    \item what are the most commonly planted species and why?
+    \item what are the health conditions of the trees and what are influencing factors?
+\end{itemize}
+
+Our team members include:
+\begin{itemize}
+	\item Bingquan Wu: 
+	\item Dazun Sun:
+	\item Hangyu Zhou:
+  \item Xiaoyu Chen:
+\end{itemize}
+
+
+\section{Description of Data}
+The data that we use is  the citywide street tree data from the Street Tree Census in \href{https://data.cityofnewyork.us/Environment/1995-Street-Tree-Census/kyad-zm4j}{1995}, \href{https://data.cityofnewyork.us/Environment/2005-Street-Tree-Census/29bw-z7pj}{2005} and \href{https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/uvpi-gqnh}{2015}, conducted by volunteers organized by NYC Parks \& Recreation. We access the datasets from the NYC OpenData website by direcly downloading them. Our main analysis is done using the tree data from 2015, the data from 1995 and 2005 are used to analyze the growth of number of trees. In addition, we used the tree cover rate data from wikipedia for major cities in US, the links for the data source is in \href{https://github.com/hao871563506/EDAV-project--NYC-trees/blob/master/final%20rmd/different%20city%20tree%20cover.csv}{this github file}.
+
+The 2015 tree data set has approximately $684,000$ rows, each representing a tree, and $45$ columns, most of which are categorical.  The only two meaningful numerical variables are the the diameter at breast level and the diameter of stump.
+
+\section{Analysis of Data Quality}
+To analyze the data quality, we first read our data from a local file and select only the variables we want to consider and then apply the visna function to extract the missing value paterns.
+
+
+```{r}
+myvars <- c("tree_dbh", "status", "health", "spc_common", 
+            "steward", "guards", "sidewalk", "root_stone", 
+            "root_grate", "trunk_wire", "trnk_light", 
+            "brch_light", "brch_shoe", "postcode", "borough")
+mydata <- mydata[myvars]
+extracat::visna(mydata, sort = 'b')
+```
+
+Our data set has very few missing values and when looking at the original csv file, it seems that the missing values are due to the tree being dead or stump. To confirm our hypothesis, we made a bar plot of missing value by variable, grouped by status.
+
+```{r}
+missing_value <- mydata %>% group_by(status) %>% 
+  summarize(spc_common = sum(is.na(`spc_common`)),
+            health = sum(is.na(`health`)),
+            guards = sum(is.na(`guards`)),
+            sidewalk = sum(is.na(`sidewalk`)),
+            steward = sum(is.na(`steward`))) %>%
+  gather(key = variable, value = count, -status)
+
+ggplot(missing_value, aes(status, count)) + 
+  geom_bar(aes(fill = variable), position = "dodge", 
+           stat="identity") +
+  labs(x = 'Status', y = "Number of Missing Values") + 
+  scale_fill_manual(values=cbPalette) + th
+
+```
+
+The graph above confirmed our hypothesis. We can now conclude that our data is very clean and has very few missing values.
+
+
+
+\section{Main Analysis}
+Our graphical analysis will focus on four categories, which involves
+\begin{itemize}
+  \item number of trees (e.g. tree distribution across borough, growth of number of trees...)
+  \item breast height diameter of trees
+  \item tree species (e.g. dominant species in each borough, ...)
+  \item health status (e.g. aaa, aaa ...)
+\end{itemize}
+
+
+\subsection{Number of trees}
+We will first compare the tree cover rate of NYC with other major cities in US. 
+
+```{r,fig.width=10}
+ggplot(mytree,aes(x= reorder(Cities,-Tree.Cover),Tree.Cover)) + 
+  geom_bar(aes(y=Tree.Cover),stat='identity') + 
+  labs(title="Different city tree cover rate in US",
+       x="City in US (include national average)", 
+       y = "Tree cover rate (%)") + 
+  theme(plot.title = element_text(size=20)) + 
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=16))
+```
+
+From the graph above, we can see that the national average of tree cover rate of cities in US is 27%, while New York City, is below the national average at 24%. So, we are trying to understand the trees in the New York City, the distribution and their changes through the time.
+
+```{r}
+mydata <- mydata %>% mutate(health = replace_na(health, "Death"))
+borough_2015 <- data.frame(table(mydata$borough))
+colnames(borough_2015)[colnames(borough_2015) == 'Var1'] <- 'Borough'
+borough_2015$Borough <- as.character(borough_2015$Borough)
+borough_1995 <- data.frame(table(mydata_1995$Borough))
+colnames(borough_1995)[colnames(borough_1995) == 'Var1'] <- 'Borough'
+borough_1995$Borough <- as.character(borough_1995$Borough)
+borough_2005 <- data.frame(table(mydata_2005$boroname))
+colnames(borough_2005)[colnames(borough_2005) == 'Var1'] <- 'Borough'
+borough_2005$Borough <- as.character(borough_2005$Borough)
+borough_2005$Borough[borough_2005$Borough == "5"] <- "Staten Island"
+borough_1995["Year"] <- "1995"
+borough_2005["Year"] <- "2005"
+borough_2015["Year"] <- "2015"
+borough <- rbind(borough_1995, borough_2005, borough_2015)
+colnames(borough)[colnames(borough) == 'Freq'] <- 'Numbers'
+
+borough %>% ggplot(aes(x = Year, 
+                       y = Numbers, 
+                       group = Borough, 
+                       color = Borough)) + 
+            geom_line() + 
+            ggtitle("Tree Numbers for Each Borough by Year") + th
+```
+
+For five boroughs in New York City, number of trees varying by year intuitively reflect the green rate in each borough. It is evident to see from graph that number of trees show a trend of increasing. For the absolute tree numbers, Queens ranks first in five boroughs, following by Brooklyn, Staten Island, Bronx and Manhatten. While for the increasing rate, Brooklyn ranks first, following by Bronx, Manhattan, Queens and Staten Island. However, since each borough has different population, we also need to consider the population in each borough to make the comparison more meaningful. We use the most recent(2015) data in the next graph.
+
+```{r}
+borough<-c("Manhattan","Bronx","Staten Island","Brooklyn","Queens")
+borough<-factor(borough)
+tree<-c(65423,85203,105318,177293,250551)
+population<-c(1664727,1471160,479458,2648771,2358582)
+area<-c(22.83,42.1,58.37,70.82,108.53)
+populationdensity<-population/area
+treedensity<-tree/area
+mydata2<-data.frame(borough, treedensity, 
+                    populationdensity, tree, 
+                    population)
+
+ggplot(mydata2,aes(x=borough)) +
+  geom_bar(aes(y=tree/population),stat="identity") +
+  labs(title="Trees per person each borough",
+       x="borough", 
+       y = "Trees per person") + th
+```
+
+So, here is the plot of trees per person in each borough. Manhattan is still the lowesr, while Staten Island  has the highest tree per person, much higher than other borough. This is mainly because, Staten Island has a low population density relatively, while Manhattan has a high population density. And also, Manhattan has much more buildings than other borough, and less place for planting trees.
+
+
+\subsection{Breast height diameter of trees}
+
+The dbh (breast height diameter) of trees is measured at the height of an adult's breast. It is often used to estimate the volume, biomass, and carbon storage of trees. The distribution of dbh of trees are as follow.
+
+```{r}
+ggplot(mydata, aes(x=tree_dbh)) + 
+  geom_density(fill="lightblue") + 
+  labs(title="diameter density curve",
+       x="tree breast height diameter (inch)",
+       y = "density") + th
+```
+
+From the density curve we can see that most tree have a dbh from 0 to 30, and lots of them are in the range of 10-20. From the scale of x-axis, we can tell that there is few tree that has diameter of more than 400 which does not make sense. So the question now is, how do we decide whether a tree is considered as an outlier. The boxplot is useful in answering the question. 
+
+```{r}
+ggplot(mydata, aes(y=tree_dbh)) + geom_boxplot() + 
+  labs(title="diameter barplot", 
+       y = "tree breast height diameter (inch)") + th
+```
+
+By plotting a boxplot. We can find out the outlier easily. We can see no trees has negative diameter, which makes sense. We can see that median is around 10, while 75% of data are from 0-20, and data more than 35 can be considered to be outliers. From now on, we will zoom in and focus on trees with bdh smaller than or equal to 50.
+
+```{r}
+ggplot(mydata, aes(x=tree_dbh)) + geom_density(fill="lightblue") + 
+  labs(title="diameter density curve zoomed",
+       x="tree breast height diameter (inch)", y = "density") + 
+  xlim(0, 50) + th
+```
+
+Now, we get aside the outliers, and plot the density curve again. This time we will get a somehow zoomed view of the curve. We can clearly see the serval peaks. The highest peak is around 4cm, with a density of more than 0.08. In addition, we can see the diameter is distributed normally around the peak of 4cm, even though the plot does not look like a bell, since the lower bound of the diameter is 0 and do not have a upper bound.
+
+Using a ridgeplot, we can compare the density distribution by borough very easily. Ridgeplot give us a direct understanding of different distribution, and easy to compare.
+```{r}
+ggplot(mydata, aes(x = tree_dbh, y = borough)) + geom_density_ridges() +
+  labs(title="diameter density ridgeplot",
+       x="tree breast height diameter (inch)",
+       y = "borough") +
+  xlim(0, 50) + th
+```
+We can get many information, for example, Queens has more trees with diameter from 25-50 than Manhattan, which have very few tree with diameter in that range.
+
+Also, we can found out a single-peak pattern in every borough, and a similar normal distributin of the pattern, which is useful in our further study if calculation will be involved.
+
+
+
+\subsection{Tree species}
+We will first look at the number of trees for each species in NYC.
+
+```{r}
+spc <- mydata %>% group_by(spc_common) %>% summarise(count = n()) %>% top_n(30)
+spc <- spc[-30,]
+ggplot(spc, aes(x = count, y = fct_reorder(spc_common, count))) +
+  geom_point() +
+  labs(title="Number of trees per species",
+       x = "number of trees",
+       y = "Species") + th
+```
+There are five species which are clearly planted more in NYC, namely, London planetree, honeylocust, callery pear, pink oak and Norway maple. It is interesting to find our how do the number of these trees change overtime. 
+
+```{r, results="hide"}
+sort(table(mydata$spc_common), decreasing=TRUE)
+name2015 <- c('London planetree', 'honeylocust', 'Callery pear', 
+              'pin oak', 'Norway maple')
+freq2015 <- c(87014, 64264, 58931, 53185, 34189)
+spc2015 <- data.frame(name2015, freq2015)
+colnames(spc2015)[colnames(spc2015) == 'name2015'] <- 'Species'
+colnames(spc2015)[colnames(spc2015) == 'freq2015'] <- 'Numbers'
+spc2015["Year"] <- "2015"
+sort(table(mydata_1995$Spc_Common), decreasing=TRUE)
+freq1995 <- c(88040, 33727, 31293, 36553, 109321)
+spc1995 <- data.frame(name2015, freq1995)
+colnames(spc1995)[colnames(spc1995) == 'name2015'] <- 'Species'
+colnames(spc1995)[colnames(spc1995) == 'freq1995'] <- 'Numbers'
+spc1995["Year"] <- "1995"
+sort(table(mydata_2005$spc_common), decreasing=TRUE)
+freq2005 <- c(89529, 52191, 63593, 43895, 74721)
+spc2005 <- data.frame(name2015, freq2005)
+colnames(spc2005)[colnames(spc2005) == 'name2015'] <- 'Species'
+colnames(spc2005)[colnames(spc2005) == 'freq2005'] <- 'Numbers'
+spc2005["Year"] <- "2005"
+spc <- rbind(spc1995, spc2005, spc2015)
+spc$Species <- as.character(spc$Species)
+spc$Numbers <- as.integer(spc$Numbers)
+```
+
+```{r}
+spc %>% ggplot(aes(x = Year, 
+                   y = Numbers, group = Species, color = Species)) + 
+          geom_line() + ggtitle("Top Five Species Numbers by Year") + th
+```
+
+In year 2015, the top five tree species in New York city is London planetree, honeylocust, Callery pear, pin oak and Norway maple. Each of five species presented a different growing trend in the past ten year. For example, the growing trend of London planetree is very stable. Knowing that the Norway maple is very invasive, the NYC government pulled seedlings of Norway maple from moist soil before they get too large to prevent them from destroying native ecosystems, causing trouble in yards and gardens, and creating visual blight. Therefore, the number of Norway maple decreased dramatically in the past ten years, varying from the first to the last.
+
+
+\subsection{Health status}
+For the health status, our first hypothesis is that three dbh is related to the health status. 
+
+```{r}
+g <- ggplot(mydata, aes(tree_dbh)) + scale_fill_manual(values=cbPalette)
+g + geom_histogram(aes(fill=factor(health, levels = c ("Death", "Poor", "Fair", "Good"))), 
+                   binwidth = .7, 
+                   col="black", 
+                   size=.1) +  xlim(0,30) + ggtitle("Tree_dbh by Health") +
+  labs(fill="Health") + th
+```
+
+The graph descirbes the health status of each diameter of the trees in the dataset. It is evident that most trees are in good status and obviously, dead trees account only for a small fraction. From the plot, we also know that most trees fall in diameters below 20 inches and the status for each tree is ranked by Good, Fair, Poor and Death. Next, we will analyze different health problems for trees.
+
+```{r}
+boroughrootstone<-mydata %>% group_by(borough) %>% count(root_stone) %>% 
+  mutate(proportion = n / sum(n))
+boroughrootstone2<- subset(boroughrootstone, 
+                           boroughrootstone$root_stone == "Yes")
+boroughrootgrate<-mydata %>% group_by(borough) %>% count(root_grate) %>% 
+  mutate(proportion = n / sum(n))
+boroughrootgrate2<- subset(boroughrootgrate, 
+                           boroughrootgrate$root_grate == "Yes")
+boroughtrunkwire<-mydata %>% group_by(borough) %>% count(trunk_wire) %>% 
+  mutate(proportion = n / sum(n))
+boroughtrunkwire2<- subset(boroughtrunkwire, 
+                           boroughtrunkwire$trunk_wire == "Yes")
+boroughtrunklight<-mydata %>% group_by(borough) %>% count(trnk_light) %>% 
+  mutate(proportion = n / sum(n))
+boroughtrunklight2<- subset(boroughtrunklight,
+                            boroughtrunklight$trnk_light == "Yes")
+boroughbrchlight<-mydata %>% group_by(borough) %>% count(brch_light) %>% 
+  mutate(proportion = n / sum(n))
+boroughbrchlight2<- subset(boroughbrchlight,
+                           boroughbrchlight$brch_light == "Yes")
+boroughbrchshoe<-mydata %>% group_by(borough) %>% count(brch_shoe) %>% 
+  mutate(proportion = n / sum(n))
+boroughbrchshoe2<- subset(boroughbrchshoe,
+                          boroughbrchshoe$brch_shoe == "Yes")
+s1 <- ggplot(boroughrootstone2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#56B4E9")+
+  labs(title="root problem caused by stone",
+       x="borough", y = "Proportion")
+s2 <- ggplot(boroughrootgrate2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#56B4E9")+
+  labs(title="root problem caused by grate",
+       x="borough", y = "Proportion")
+s3 <- ggplot(boroughtrunkwire2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#CC79A7")+
+  labs(title="trunk problem caused by wire",
+       x="borough", y = "Proportion")
+s4 <- ggplot(boroughtrunklight2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#CC79A7")+
+  labs(title="trunk problem caused by light",
+       x="borough", y = "Proportion")
+s5 <- ggplot(boroughbrchlight2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#009E73")+
+  labs(title="branch problem caused by light",
+       x="borough", y = "Proportion")
+s6 <- ggplot(boroughbrchshoe2,aes(x=borough))+
+  geom_bar(aes(y=proportion),stat="identity",fill="#009E73")+
+  labs(title="branch problem caused by shoe",
+       x="borough", y = "Proportion")
+grid.arrange(s1, s2, s3, s4, s5, s6, ncol=2)
+```
+
+From the plot above, we can observe many patterns. We can see that among the 6 problems, root problems caused by stone has a much higher percentage than other problem, around 20% of trees has this problems, while almost no trees has branch problem caused by shoe. And we can see that Manhattan has a much higher percentage of perblem in root problem caused by grate and truck problem caused by light, while a much lower problem proportion in brach problem caused by light. Also, we can see that Staten Island has a relatively lower proportion on almost every problem meaning that it has a good preservation and management of the trees.
+
+
+
+\section{Executive summary}
+
+
+\section{Interactive component}
+Our interactive component includes two pieces:
+\begin{itemize}
+  \item \href{https://ds3717.shinyapps.io/species/}{Number of trees for top 9 species in NYC}
+  \item \href{https://ds3717.shinyapps.io/density_curve/}{Tree dbh density curve}
+\end{itemize}
+The plots will change based on the year and zipcode entered. Users maybe interested in the most common species that they live in. This is impossible to display with static graphs because there are too many zipcodes. One trend we want the users to discover is that the tree dbh distribution is shifting to the right which confirms the fact that trees are growing thicker.
+
+\section{Conclusion}
+
+
+
+
+
+
+
+
