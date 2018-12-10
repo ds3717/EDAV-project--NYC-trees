@@ -1,0 +1,28 @@
+---
+title: "different city tree cover"
+author: "Bingquan Wu"
+date: "December 7, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE,
+                      warning = FALSE)
+```
+
+
+
+```{r,fig.width=10}
+mytree <- read.csv(file="d:/columbia/EDAV/project/different city tree cover.csv",
+                   header=TRUE, sep=",")
+library(ggplot2)
+ggplot(mytree,aes(x= reorder(Cities,-Tree.Cover),Tree.Cover))+
+  geom_bar(aes(y=Tree.Cover),stat='identity')+
+  labs(title="Different city tree cover rate in US",
+       x="City in US (include national average)", y = "Tree cover rate (%)")+ 
+  theme(plot.title = element_text(size=22))+
+  theme(axis.text=element_text(size=12),axis.title=element_text(size=16))
+```
+
+From the graph above, we can see that the national average of tree cover rate of cities in US is 27%, while New York City, is below the national average at 24%.\
+So, we are trying to understand the trees in the New York City, the distribution and their changes through the time\
